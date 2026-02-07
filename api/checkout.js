@@ -12,11 +12,17 @@ export default async function handler(req, res) {
 
   const stripe = new Stripe(STRIPE_SECRET);
 
-  const { email, product, designId, designPreviewUrl } = req.body || {};
+  const { email, product, productName, productSubtitle, basePrice, shippingPrice, designId, designPreviewUrl } = req.body || {};
 
   if (!email || !product) {
     return res.status(400).json({ error: "Email and product details are required" });
   }
+
+  // Use dynamic pricing from Printful catalog, with sensible fallbacks
+  const unitAmountProduct = Math.round((basePrice || 24.50) * 100);
+  const unitAmountShipping = Math.round((shippingPrice || 4.50) * 100);
+  const productLabel = productName || product.shirtType || "Custom Tee";
+  const colorLabel = product.shirtColorName || "Black";
 
   const origin = req.headers.origin || "http://localhost:5173";
 
@@ -36,11 +42,11 @@ export default async function handler(req, res) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `Custom Design Tee — ${product.shirtType || "Crew Neck"}`,
-              description: `Size: ${product.size || "L"} | Color: ${product.shirtColor || "Black"}`,
+              name: `${productLabel} — Custom Design`,
+              description: `${productSubtitle || "Tee"} | Size: ${product.size || "L"} | Color: ${colorLabel}`,
               images: designPreviewUrl ? [designPreviewUrl] : [],
             },
-            unit_amount: 3400,
+            unit_amount: unitAmountProduct,
           },
           quantity: 1,
         },
@@ -48,9 +54,9 @@ export default async function handler(req, res) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "Shipping",
+              name: "Standard Shipping (5-8 days)",
             },
-            unit_amount: 450,
+            unit_amount: unitAmountShipping,
           },
           quantity: 1,
         },
@@ -61,8 +67,10 @@ export default async function handler(req, res) {
       metadata: {
         designId: designId || "",
         designPreviewUrl: designPreviewUrl || "",
-        shirtType: product.shirtType || "Crew Neck",
-        shirtColor: product.shirtColor || "#1C1C1E",
+        printfulProduct: product.printfulProduct || "bella-canvas-3001",
+        shirtType: product.shirtType || "Bella+Canvas 3001",
+        shirtColor: product.shirtColor || "#0C0C0C",
+        shirtColorName: colorLabel,
         size: product.size || "L",
       },
     });

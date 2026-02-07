@@ -1,16 +1,16 @@
 const STYLE_TEMPLATES = {
   minimal:
-    "minimalist t-shirt graphic, clean geometry, bold contrast, centered composition, isolated on transparent background, print-ready edges",
+    "minimalist t-shirt design, clean vector art, bold contrast, centered composition, isolated subject on pure black background #000000, no border, no frame, crisp edges, professional screen print ready, high quality digital art",
   vintage:
-    "vintage-inspired t-shirt illustration, worn texture effect, retro palette, distressed but legible details, transparent background",
+    "vintage retro t-shirt design, distressed worn texture, muted retro color palette, isolated subject on pure black background #000000, no border, no frame, nostalgic illustration style, professional print ready, high quality",
   streetwear:
-    "streetwear t-shirt graphic, bold line work, high contrast, edgy composition, clean printable edges, transparent background",
+    "streetwear t-shirt graphic design, bold thick outlines, vibrant colors, urban art style, isolated subject on pure black background #000000, no border, no frame, clean vector edges, professional DTG print ready, high quality",
   watercolor:
-    "watercolor t-shirt artwork, painterly gradients, soft blended tones with clear subject silhouette, transparent background",
+    "watercolor art style t-shirt design, soft blended painterly colors, visible brushstrokes, isolated subject on pure black background #000000, no border, no frame, artistic splatter effects, professional print ready, high quality",
   illustrated:
-    "illustrated t-shirt graphic, hand-drawn vibe, crisp outlines, layered shading, transparent background",
+    "hand-drawn illustration style t-shirt design, detailed line art with color fill, crisp outlines, layered shading, isolated subject on pure black background #000000, no border, no frame, professional print ready, high quality",
   photographic:
-    "photographic-style t-shirt art, dramatic lighting, strong subject focus, optimized for screen print contrast, transparent background",
+    "photorealistic t-shirt design, dramatic cinematic lighting, vivid colors, strong subject focus, isolated on pure black background #000000, no border, no frame, DTG optimized contrast, professional print ready, high quality",
 };
 
 const BLOCKED_TERMS = [
@@ -81,7 +81,8 @@ async function generateWithFal(prompt, tier, count) {
   const images = [];
 
   for (let i = 0; i < count; i++) {
-    const response = await fetch(`https://queue.fal.run/${model}`, {
+    // Use synchronous endpoint first (simpler, works for schnell)
+    const response = await fetch(`https://fal.run/${model}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -97,16 +98,71 @@ async function generateWithFal(prompt, tier, count) {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Fal.ai error: ${err}`);
+      const errText = await response.text();
+      console.error(`Fal.ai sync error (${response.status}):`, errText);
+
+      // If sync fails, try queue-based approach
+      const queueResponse = await fetch(`https://queue.fal.run/${model}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Key ${FAL_KEY}`,
+        },
+        body: JSON.stringify({
+          prompt,
+          image_size: "square_hd",
+          num_inference_steps: tier === "pro" ? 28 : 4,
+          num_images: 1,
+          enable_safety_checker: true,
+        }),
+      });
+
+      if (!queueResponse.ok) {
+        const queueErr = await queueResponse.text();
+        throw new Error(`Fal.ai queue error: ${queueErr}`);
+      }
+
+      const queueResult = await queueResponse.json();
+
+      if (queueResult.request_id) {
+        let attempts = 0;
+        while (attempts < 60) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const statusRes = await fetch(
+            `https://queue.fal.run/${model}/requests/${queueResult.request_id}/status`,
+            { headers: { Authorization: `Key ${FAL_KEY}` } }
+          );
+          const status = await statusRes.json();
+
+          if (status.status === "COMPLETED") {
+            const resultRes = await fetch(
+              `https://queue.fal.run/${model}/requests/${queueResult.request_id}`,
+              { headers: { Authorization: `Key ${FAL_KEY}` } }
+            );
+            const finalResult = await resultRes.json();
+            if (finalResult.images?.[0]?.url) {
+              images.push(finalResult.images[0].url);
+            }
+            break;
+          }
+          if (status.status === "FAILED") {
+            throw new Error("Image generation failed in queue");
+          }
+          attempts++;
+        }
+      }
+      continue;
     }
 
     const result = await response.json();
 
-    if (result.request_id) {
+    if (result.images?.[0]?.url) {
+      images.push(result.images[0].url);
+    } else if (result.request_id) {
+      // Handle async response from sync endpoint
       let attempts = 0;
       while (attempts < 60) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 2000));
         const statusRes = await fetch(
           `https://queue.fal.run/${model}/requests/${result.request_id}/status`,
           { headers: { Authorization: `Key ${FAL_KEY}` } }
@@ -129,8 +185,6 @@ async function generateWithFal(prompt, tier, count) {
         }
         attempts++;
       }
-    } else if (result.images?.[0]?.url) {
-      images.push(result.images[0].url);
     }
   }
 
@@ -224,6 +278,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Generation error:", err.message);
-    return res.status(500).json({ error: "Image generation failed. Please try again." });
+    return res.status(500).json({ error: `Image generation failed: ${err.message}` });
   }
 }

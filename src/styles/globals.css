@@ -16,6 +16,8 @@ body {
   font-family: "DM Sans", sans-serif;
   background: #0d1013;
   color: #f6f7f8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 textarea,
@@ -31,15 +33,89 @@ select {
   outline: none;
 }
 
+/* Card glass effect */
 .card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(160deg, rgba(27, 32, 38, 0.85), rgba(19, 23, 28, 0.95));
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(27, 32, 38, 0.72), rgba(13, 16, 19, 0.92));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 20px 50px rgba(0, 0, 0, 0.4),
+    0 0 80px rgba(230, 57, 70, 0.03);
+  backdrop-filter: blur(12px);
 }
 
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Hero mesh background */
 .mesh-bg {
   background-image:
-    radial-gradient(circle at 0% 0%, rgba(230, 57, 70, 0.24), transparent 45%),
-    radial-gradient(circle at 80% 100%, rgba(69, 123, 157, 0.2), transparent 42%),
+    radial-gradient(circle at 0% 0%, rgba(230, 57, 70, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(69, 123, 157, 0.15), transparent 42%),
     linear-gradient(130deg, #0d1013, #13171c 45%, #1b2026);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #E63946;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.4);
+  transition: transform 0.15s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Skeleton loading pulse */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+/* Smooth page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease;
 }

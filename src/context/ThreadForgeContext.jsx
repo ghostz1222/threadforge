@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { PRICE_TABLE } from "../data/constants";
+import { PRINTFUL_PRODUCTS, SHIPPING_RATES } from "../data/printfulProducts";
 
 const ThreadForgeContext = createContext(null);
 
@@ -36,7 +36,13 @@ export function ThreadForgeProvider({ children }) {
   );
 
   const [product, setProduct] = useState(
-    persisted?.product || { shirtType: "Crew Neck", shirtColor: "#1C1C1E", size: "L" }
+    persisted?.product || {
+      printfulProduct: "bella-canvas-3001",
+      shirtType: "Bella+Canvas 3001",
+      shirtColor: "#0C0C0C",
+      shirtColorName: "Black",
+      size: "L",
+    }
   );
 
   const [generation, setGeneration] = useState(
@@ -59,7 +65,10 @@ export function ThreadForgeProvider({ children }) {
 
   const [activeOrder, setActiveOrder] = useState(persisted?.activeOrder || null);
 
-  const total = useMemo(() => PRICE_TABLE.base + PRICE_TABLE.shipping, []);
+  const total = useMemo(() => {
+    const pfProduct = PRINTFUL_PRODUCTS.find((p) => p.id === product.printfulProduct) || PRINTFUL_PRODUCTS[0];
+    return pfProduct.basePrice + SHIPPING_RATES.standard.price;
+  }, [product.printfulProduct]);
 
   // Persist state on every change
   useEffect(() => {

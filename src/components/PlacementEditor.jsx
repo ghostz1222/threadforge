@@ -6,27 +6,27 @@ export default function PlacementEditor({ design, value, onChange }) {
   const fabricRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current || fabricRef.current) {
-      return;
-    }
+    if (!canvasRef.current || fabricRef.current) return;
 
     const canvas = new fabric.Canvas(canvasRef.current, {
-      width: 320,
-      height: 260,
-      backgroundColor: "#12171c",
+      width: 280,
+      height: 240,
+      backgroundColor: "#0f1318",
       selection: false,
     });
 
     canvas.add(
       new fabric.Rect({
-        left: 80,
-        top: 30,
+        left: 60,
+        top: 20,
         width: 160,
         height: 200,
-        fill: "#1b222a",
-        rx: 12,
-        ry: 12,
+        fill: "#171d24",
+        rx: 10,
+        ry: 10,
         selectable: false,
+        stroke: "rgba(255,255,255,0.04)",
+        strokeWidth: 1,
       }),
     );
 
@@ -39,14 +39,10 @@ export default function PlacementEditor({ design, value, onChange }) {
 
   useEffect(() => {
     const canvas = fabricRef.current;
-    if (!canvas) {
-      return;
-    }
+    if (!canvas) return;
 
     const old = canvas.getObjects().find((obj) => obj.data?.role === "design");
-    if (old) {
-      canvas.remove(old);
-    }
+    if (old) canvas.remove(old);
 
     if (!design?.preview) {
       canvas.renderAll();
@@ -58,8 +54,8 @@ export default function PlacementEditor({ design, value, onChange }) {
       (img) => {
         img.set({
           data: { role: "design" },
-          left: 160,
-          top: 122 + (value?.y ?? 0),
+          left: 140,
+          top: 112 + (value?.y ?? 0),
           originX: "center",
           originY: "center",
           scaleX: 0.35 + (value?.scale ?? 20) / 100,
@@ -74,30 +70,36 @@ export default function PlacementEditor({ design, value, onChange }) {
   }, [design, value?.scale, value?.y]);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-coal-900 p-3">
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">Placement editor (Fabric.js)</p>
-      <canvas ref={canvasRef} className="w-full rounded-md border border-white/10" />
-      <div className="mt-3 space-y-3">
-        <label className="block text-xs text-white/80">
-          Scale
+    <div className="rounded-xl border border-white/[0.06] bg-coal-900/50 p-4">
+      <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">Placement editor</p>
+      <canvas ref={canvasRef} className="w-full rounded-lg border border-white/[0.04]" />
+      <div className="mt-4 space-y-4">
+        <label className="block">
+          <span className="flex items-center justify-between text-[11px] text-white/50">
+            <span>Scale</span>
+            <span className="font-mono">{value.scale}%</span>
+          </span>
           <input
             type="range"
             min={-20}
             max={60}
             value={value.scale}
             onChange={(event) => onChange({ ...value, scale: Number(event.target.value) })}
-            className="mt-1 w-full accent-ember-500"
+            className="mt-2 w-full"
           />
         </label>
-        <label className="block text-xs text-white/80">
-          Vertical position
+        <label className="block">
+          <span className="flex items-center justify-between text-[11px] text-white/50">
+            <span>Vertical position</span>
+            <span className="font-mono">{value.y}</span>
+          </span>
           <input
             type="range"
             min={-40}
             max={60}
             value={value.y}
             onChange={(event) => onChange({ ...value, y: Number(event.target.value) })}
-            className="mt-1 w-full accent-ember-500"
+            className="mt-2 w-full"
           />
         </label>
       </div>

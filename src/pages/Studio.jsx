@@ -119,70 +119,83 @@ export default function Studio() {
       setError("Enter a valid email to unlock more generations.");
       return;
     }
-
     setGeneration((prev) => ({ ...prev, emailUnlocked: true }));
     setError("");
   };
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[420px_1fr]">
-      <section className="card rounded-2xl p-4 sm:p-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">Design studio</p>
+    <main className="mx-auto grid w-full max-w-7xl gap-5 px-5 py-8 sm:px-6 lg:grid-cols-[400px_1fr]">
+      {/* Left Panel */}
+      <section className="card rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-ember-400" />
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">Design Studio</p>
+        </div>
 
-        <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-white/70">Describe your design</label>
+        <label className="mt-5 block text-xs font-semibold uppercase tracking-wider text-white/60">
+          Describe your design
+        </label>
         <textarea
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           placeholder="A wolf howling at a neon moon with geometric mountains..."
-          className="mt-2 h-28 w-full rounded-xl border border-white/15 bg-coal-800 px-3 py-3 text-sm text-white placeholder:text-white/35"
+          className="mt-2 h-28 w-full resize-none rounded-xl border border-white/[0.08] bg-coal-900/60 px-4 py-3 text-sm text-white placeholder:text-white/25 transition focus:border-white/20 focus:bg-coal-900"
         />
 
-        <label className="mt-5 block text-xs font-semibold uppercase tracking-wider text-white/70">Style preset</label>
+        <label className="mt-5 block text-xs font-semibold uppercase tracking-wider text-white/60">
+          Style preset
+        </label>
         <div className="mt-2">
           <StylePicker value={style} onChange={setStyle} />
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-5 space-y-2.5">
           <button
             type="button"
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full rounded-lg bg-ember-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-ember-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-gradient-to-r from-ember-500 to-ember-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-ember-500/20 transition-all hover:shadow-ember-500/35 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
           >
-            {loading ? "Creating 4 variations..." : "Create designs"}
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin-slow" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Creating 4 variations...
+              </span>
+            ) : (
+              "Create designs"
+            )}
           </button>
           <button
             type="button"
             onClick={handleGenerate}
             disabled={loading || !designs.length}
-            className="w-full rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/40 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm font-semibold text-white/70 transition hover:border-white/15 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-30"
           >
             Remix 4 more
           </button>
         </div>
 
-        <div className="mt-4">
-          <GenCounter
-            used={generation.used}
-            limit={generation.freeLimit}
-            emailUnlocked={generation.emailUnlocked}
-          />
+        <div className="mt-5">
+          <GenCounter used={generation.used} limit={generation.freeLimit} emailUnlocked={generation.emailUnlocked} />
         </div>
 
         {!generation.emailUnlocked && generation.used >= generation.freeLimit && (
-          <div className="mt-4 rounded-lg border border-ember-400/40 bg-ember-500/10 p-3">
-            <p className="text-xs text-white/80">Save your favorites to keep creating.</p>
-            <div className="mt-2 flex gap-2">
+          <div className="mt-4 rounded-xl border border-ember-400/20 bg-ember-500/[0.06] p-4">
+            <p className="text-xs text-white/70">Save your favorites to keep creating.</p>
+            <div className="mt-2.5 flex gap-2">
               <input
                 value={unlockEmail}
                 onChange={(event) => setUnlockEmail(event.target.value)}
                 placeholder="email@domain.com"
-                className="w-full rounded-md border border-white/20 bg-coal-900 px-2 py-2 text-sm"
+                className="w-full rounded-lg border border-white/[0.08] bg-coal-900 px-3 py-2 text-sm transition focus:border-white/20"
               />
               <button
                 type="button"
                 onClick={handleUnlockWithEmail}
-                className="rounded-md bg-white px-3 text-xs font-bold text-coal-950"
+                className="shrink-0 rounded-lg bg-white px-4 text-xs font-bold text-coal-950 transition hover:bg-white/90"
               >
                 Unlock
               </button>
@@ -190,53 +203,59 @@ export default function Studio() {
           </div>
         )}
 
-        {!!error && <p className="mt-3 text-sm text-ember-300">{error}</p>}
+        {!!error && (
+          <div className="mt-4 rounded-xl border border-ember-500/20 bg-ember-500/[0.06] px-4 py-3">
+            <p className="text-sm text-ember-300">{error}</p>
+          </div>
+        )}
 
-        <div className="mt-5">
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">Pick your favorite</p>
-          <DesignGrid
-            designs={designs}
-            selectedId={selectedDesign?.id}
-            onSelect={setSelectedDesign}
-          />
+        <div className="mt-6">
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white/45">Pick your favorite</p>
+          <DesignGrid designs={designs} selectedId={selectedDesign?.id} onSelect={setSelectedDesign} loading={loading} />
         </div>
       </section>
 
-      <section className="card rounded-2xl p-4 sm:p-6">
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="rounded-xl border border-white/10 bg-coal-900/70 p-4">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">Live mockup</p>
-            <ShirtMockup color={product.shirtColor} design={selectedDesign} placement={placement} />
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <ColorPicker
-                value={product.shirtColor}
-                onChange={(shirtColor) => setProduct({ ...product, shirtColor })}
-              />
-              <button
-                type="button"
-                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-white/60"
-                disabled
-              >
-                Front (Back in Phase 2)
-              </button>
+      {/* Right Panel */}
+      <section className="space-y-5">
+        <div className="card rounded-2xl p-5 sm:p-6">
+          <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+            <div className="rounded-xl border border-white/[0.06] bg-coal-900/50 p-5">
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">Live mockup</p>
+              <ShirtMockup color={product.shirtColor} design={selectedDesign} placement={placement} />
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <ColorPicker value={product.shirtColor} onChange={(shirtColor) => setProduct({ ...product, shirtColor })} />
+                <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[10px] font-medium text-white/30">Front only</span>
+              </div>
             </div>
+            <Suspense fallback={<div className="skeleton h-[340px] rounded-xl" />}>
+              <PlacementEditor design={selectedDesign} value={placement} onChange={setPlacement} />
+            </Suspense>
           </div>
-
-          <Suspense
-            fallback={<div className="rounded-xl border border-white/10 bg-coal-900 p-3 text-sm text-white/60">Loading placement editor...</div>}
-          >
-            <PlacementEditor design={selectedDesign} value={placement} onChange={setPlacement} />
-          </Suspense>
         </div>
 
-        <div className="mt-5 flex justify-end">
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={handleContinue}
             disabled={!selectedDesign || finalizing}
-            className="rounded-lg border border-white/25 px-5 py-3 text-sm font-semibold transition hover:border-white/50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="group inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-6 py-3.5 text-sm font-semibold transition-all hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
           >
-            {finalizing ? "Preparing print-ready design..." : "Continue to customize →"}
+            {finalizing ? (
+              <span className="inline-flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin-slow" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Preparing print-ready design...
+              </span>
+            ) : (
+              <>
+                Continue to customize
+                <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </>
+            )}
           </button>
         </div>
       </section>
