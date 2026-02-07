@@ -9,10 +9,10 @@ function placementToPrintfilePosition(placement) {
   const scale = Number(placement?.scale ?? 20);
   const y = Number(placement?.y ?? 0);
 
-  const width = clamp(Math.round(940 + scale * 10), 640, 1460);
+  const width = clamp(Math.round(860 + scale * 9), 600, 1320);
   const height = width;
   const left = Math.round((FRONT_AREA.width - width) / 2);
-  const top = clamp(Math.round(520 + y * 9), 180, FRONT_AREA.height - height - 80);
+  const top = clamp(Math.round(430 + y * 7), 120, FRONT_AREA.height - height - 120);
 
   return {
     area_width: FRONT_AREA.width,

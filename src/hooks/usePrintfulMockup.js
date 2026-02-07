@@ -1,6 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 
 const CACHE = new Map();
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const MIN_REQUEST_GAP_MS = 2500;
+let lastRequestAt = 0;
+let rateLimitUntil = 0;
+
+function getCachedValue(key) {
+  const hit = CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.ts > CACHE_TTL_MS) {
+    CACHE.delete(key);
+    return null;
+  }
+  return hit.url;
+}
+
+function parseRetrySeconds(message) {
+  const m = String(message || "").match(/after\\s+(\\d+)\\s+seconds/i);
+  return m ? Number(m[1]) : null;
+}
 
 export default function usePrintfulMockup({
   enabled,
@@ -33,13 +52,31 @@ export default function usePrintfulMockup({
       return;
     }
 
-    if (CACHE.has(cacheKey)) {
-      setState({ mockupUrl: CACHE.get(cacheKey), loading: false, error: null });
+    const cached = getCachedValue(cacheKey);
+    if (cached) {
+      setState({ mockupUrl: cached, loading: false, error: null });
       return;
     }
 
     let cancelled = false;
     const timer = setTimeout(async () => {
+      if (Date.now() < rateLimitUntil) {
+        const waitSeconds = Math.ceil((rateLimitUntil - Date.now()) / 1000);
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: `Mockup API cooling down, retrying in ~${waitSeconds}s`,
+        }));
+        return;
+      }
+
+      const gap = Date.now() - lastRequestAt;
+      if (gap < MIN_REQUEST_GAP_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_REQUEST_GAP_MS - gap));
+      }
+
+      if (cancelled) return;
+      lastRequestAt = Date.now();
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
@@ -68,13 +105,23 @@ export default function usePrintfulMockup({
           throw new Error("Mockup API returned no image");
         }
 
-        CACHE.set(cacheKey, mockupUrl);
+        CACHE.set(cacheKey, { url: mockupUrl, ts: Date.now() });
         if (!cancelled) {
           setState({ mockupUrl, loading: false, error: null });
         }
       } catch (err) {
+        const retrySeconds = parseRetrySeconds(err?.message);
+        if (retrySeconds) {
+          rateLimitUntil = Date.now() + retrySeconds * 1000;
+        }
+
         if (!cancelled) {
-          setState({ mockupUrl: null, loading: false, error: err.message || "Mockup request failed" });
+          // Preserve latest good mockup to avoid jarring fallback switches.
+          setState((prev) => ({
+            mockupUrl: prev.mockupUrl,
+            loading: false,
+            error: err.message || "Mockup request failed",
+          }));
         }
       }
     }, 650);
