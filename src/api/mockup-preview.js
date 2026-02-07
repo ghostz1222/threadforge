@@ -1,28 +1,6 @@
+import { toPrintfulPosition } from "../lib/mockupPlacement";
+
 const PRINTFUL_BASE = "https://api.printful.com";
-const FRONT_AREA = { width: 1800, height: 2400 };
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function placementToPrintfilePosition(placement) {
-  const scale = Number(placement?.scale ?? 20);
-  const y = Number(placement?.y ?? 0);
-
-  const width = clamp(Math.round(860 + scale * 9), 600, 1320);
-  const height = width;
-  const left = Math.round((FRONT_AREA.width - width) / 2);
-  const top = clamp(Math.round(430 + y * 7), 120, FRONT_AREA.height - height - 120);
-
-  return {
-    area_width: FRONT_AREA.width,
-    area_height: FRONT_AREA.height,
-    width,
-    height,
-    top,
-    left,
-  };
-}
 
 function extractMockupUrl(payload) {
   if (!payload?.result) return null;
@@ -90,17 +68,11 @@ async function resolveVariantId(printfulProductId, requestedVariantId) {
     const variants = payload?.result?.variants || [];
     const variantIds = variants.map(variantIdFromNode).filter((id) => Number.isFinite(id));
 
-    if (variantIds.length === 0) {
-      return safeRequested;
-    }
-
-    if (safeRequested && variantIds.includes(safeRequested)) {
-      return safeRequested;
-    }
-
-    return variantIds[0];
+    if (!safeRequested) return null;
+    if (variantIds.length === 0) return safeRequested;
+    return variantIds.includes(safeRequested) ? safeRequested : null;
   } catch {
-    return safeRequested;
+    return null;
   }
 }
 
@@ -120,7 +92,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const position = placementToPrintfilePosition(placement);
+    const position = toPrintfulPosition(placement);
     const resolvedVariantId = await resolveVariantId(printfulProductId, variantId);
     if (!resolvedVariantId) {
       return res.status(422).json({ error: "No valid variant ID available for this product" });

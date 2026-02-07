@@ -85,8 +85,8 @@ export async function generateExplorationDesigns({ prompt, style, count = 4, ses
     // Otherwise fall through to client-side placeholder generation
   }
 
-  // Optional fallback: client-side placeholder generation (explicitly opt-in only)
-  if (import.meta.env.VITE_ALLOW_PLACEHOLDER_GEN !== "true") {
+  // Optional fallback: client-side placeholder generation (dev only)
+  if (!(import.meta.env.DEV && import.meta.env.VITE_ALLOW_PLACEHOLDER_GEN === "true")) {
     throw new Error("Image generation service unavailable. Check API configuration.");
   }
 
@@ -140,7 +140,7 @@ export async function generateFinalDesign({ prompt, style, selectedId }) {
     // Fall through to client-side placeholder
   }
 
-  if (import.meta.env.VITE_ALLOW_PLACEHOLDER_GEN !== "true") {
+  if (!(import.meta.env.DEV && import.meta.env.VITE_ALLOW_PLACEHOLDER_GEN === "true")) {
     throw new Error("Final render service unavailable. Check API configuration.");
   }
 

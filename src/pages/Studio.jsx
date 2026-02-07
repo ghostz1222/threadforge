@@ -6,7 +6,8 @@ import ShirtMockup from "../components/ShirtMockup";
 import ColorPicker from "../components/ColorPicker";
 import GenCounter from "../components/GenCounter";
 import { useThreadForge } from "../context/ThreadForgeContext";
-import { PRINTFUL_PRODUCTS } from "../data/printfulProducts";
+import usePrintfulMockup from "../hooks/usePrintfulMockup";
+import { PRINTFUL_PRODUCTS, getVariantForColor } from "../data/printfulProducts";
 import { canGenerate } from "../lib/generationGate";
 import { checkPromptForBlockedTerms, scanOutputForPolicyViolations } from "../lib/moderation";
 import { generateExplorationDesigns, generateFinalDesign } from "../lib/generateDesign";
@@ -40,6 +41,14 @@ export default function Studio() {
   const [error, setError] = useState("");
   const [unlockEmail, setUnlockEmail] = useState("");
   const selectedProduct = PRINTFUL_PRODUCTS.find((p) => p.id === product.printfulProduct) || PRINTFUL_PRODUCTS[0];
+  const selectedVariant = getVariantForColor(selectedProduct, product.shirtColor);
+  const { mockupUrl, loading: loadingMockup, error: mockupError } = usePrintfulMockup({
+    enabled: Boolean(selectedDesign?.preview && selectedVariant?.variantId),
+    designUrl: selectedDesign?.preview,
+    printfulProductId: selectedProduct.printfulProductId,
+    variantId: selectedVariant?.variantId,
+    placement,
+  });
 
   const handleGenerate = async () => {
     const normalized = prompt.trim();
@@ -123,6 +132,16 @@ export default function Studio() {
     }
     setGeneration((prev) => ({ ...prev, emailUnlocked: true }));
     setError("");
+  };
+
+  const handleSelectColor = (color) => {
+    if (!color?.hex) return;
+    setProduct({
+      ...product,
+      shirtColor: color.hex,
+      shirtColorName: color.name || product.shirtColorName,
+      variantId: color.variantId || selectedVariant?.variantId || product.variantId,
+    });
   };
 
   return (
@@ -228,11 +247,22 @@ export default function Studio() {
                 design={selectedDesign}
                 placement={placement}
                 product={selectedProduct}
+                realMockupUrl={mockupUrl}
+                loadingRealMockup={loadingMockup}
               />
               <div className="mt-4 flex items-center justify-between gap-4">
-                <ColorPicker value={product.shirtColor} onChange={(shirtColor) => setProduct({ ...product, shirtColor })} />
+                <ColorPicker
+                  value={product.shirtColor}
+                  colors={selectedProduct.colors}
+                  onChange={handleSelectColor}
+                />
                 <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[10px] font-medium text-white/30">Front only</span>
               </div>
+              {!mockupUrl && mockupError && (
+                <p className="mt-3 text-center text-[11px] text-amber-300/80">
+                  Live Printful mockup unavailable: using composited preview.
+                </p>
+              )}
             </div>
             <Suspense fallback={<div className="skeleton h-[340px] rounded-xl" />}>
               <PlacementEditor design={selectedDesign} value={placement} onChange={setPlacement} />

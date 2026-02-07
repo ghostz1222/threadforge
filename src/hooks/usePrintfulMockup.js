@@ -28,7 +28,7 @@ export default function usePrintfulMockup({
   variantId,
   placement,
 }) {
-  const [state, setState] = useState({ mockupUrl: null, loading: false, error: null });
+  const [state, setState] = useState({ mockupUrl: null, loading: false, error: null, key: null });
 
   const cacheKey = useMemo(() => {
     if (!enabled || !designUrl || !printfulProductId || !variantId) return null;
@@ -43,30 +43,38 @@ export default function usePrintfulMockup({
 
   useEffect(() => {
     if (!cacheKey) {
-      setState({ mockupUrl: null, loading: false, error: null });
+      setState({ mockupUrl: null, loading: false, error: null, key: null });
       return;
     }
 
     if (designUrl.startsWith("data:")) {
-      setState({ mockupUrl: null, loading: false, error: "Local data URL is not usable for Printful mockups" });
+      setState({ mockupUrl: null, loading: false, error: "Local data URL is not usable for Printful mockups", key: cacheKey });
       return;
     }
 
     const cached = getCachedValue(cacheKey);
     if (cached) {
-      setState({ mockupUrl: cached, loading: false, error: null });
+      setState({ mockupUrl: cached, loading: false, error: null, key: cacheKey });
       return;
     }
+
+    setState((prev) => ({
+      mockupUrl: prev.key === cacheKey ? prev.mockupUrl : null,
+      loading: true,
+      error: null,
+      key: cacheKey,
+    }));
 
     let cancelled = false;
     const timer = setTimeout(async () => {
       if (Date.now() < rateLimitUntil) {
         const waitSeconds = Math.ceil((rateLimitUntil - Date.now()) / 1000);
-        setState((prev) => ({
-          ...prev,
+        setState({
+          mockupUrl: null,
           loading: false,
           error: `Mockup API cooling down, retrying in ~${waitSeconds}s`,
-        }));
+          key: cacheKey,
+        });
         return;
       }
 
@@ -77,7 +85,6 @@ export default function usePrintfulMockup({
 
       if (cancelled) return;
       lastRequestAt = Date.now();
-      setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
         const response = await fetch("/api/mockup-preview", {
@@ -107,7 +114,7 @@ export default function usePrintfulMockup({
 
         CACHE.set(cacheKey, { url: mockupUrl, ts: Date.now() });
         if (!cancelled) {
-          setState({ mockupUrl, loading: false, error: null });
+          setState({ mockupUrl, loading: false, error: null, key: cacheKey });
         }
       } catch (err) {
         const retrySeconds = parseRetrySeconds(err?.message);
@@ -116,11 +123,11 @@ export default function usePrintfulMockup({
         }
 
         if (!cancelled) {
-          // Preserve latest good mockup to avoid jarring fallback switches.
           setState((prev) => ({
-            mockupUrl: prev.mockupUrl,
+            mockupUrl: prev.key === cacheKey ? prev.mockupUrl : null,
             loading: false,
             error: err.message || "Mockup request failed",
+            key: cacheKey,
           }));
         }
       }

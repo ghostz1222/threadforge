@@ -37,7 +37,7 @@ function normalizeProductState(product) {
     shirtColor: matchedColor.hex,
     shirtColorName: matchedColor.name,
     size: product?.size || "L",
-    variantId: product?.variantId || matchedColor.variantId,
+    variantId: matchedColor.variantId,
   };
 }
 

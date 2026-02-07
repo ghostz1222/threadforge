@@ -1,10 +1,26 @@
 import { Link } from "react-router-dom";
 
 const EXAMPLES = [
-  { label: "Neon wolf over geometric mountains", gradient: "from-rose-500/30 to-violet-600/20", thumb: makeExampleThumb("wolf") },
-  { label: "Vintage sunset with hand-drawn van", gradient: "from-amber-500/30 to-orange-600/20", thumb: makeExampleThumb("sunset") },
-  { label: "Ink dragon wrapped around a crescent moon", gradient: "from-cyan-500/25 to-blue-600/20", thumb: makeExampleThumb("dragon") },
-  { label: "Minimal koi fish in split-color circle", gradient: "from-emerald-500/25 to-teal-600/20", thumb: makeExampleThumb("koi") },
+  {
+    label: "Neon wolf over geometric mountains",
+    gradient: "from-rose-500/30 to-violet-600/20",
+    thumb: "/examples/neon-wolf.jpg",
+  },
+  {
+    label: "Vintage sunset with hand-drawn van",
+    gradient: "from-amber-500/30 to-orange-600/20",
+    thumb: "/examples/vintage-sunset.jpg",
+  },
+  {
+    label: "Ink dragon wrapped around a crescent moon",
+    gradient: "from-cyan-500/25 to-blue-600/20",
+    thumb: "/examples/ink-dragon.jpg",
+  },
+  {
+    label: "Minimal koi fish in split-color circle",
+    gradient: "from-emerald-500/25 to-teal-600/20",
+    thumb: "/examples/koi-minimal.jpg",
+  },
 ];
 
 const STEPS = [
@@ -109,20 +125,4 @@ export default function Landing() {
       </section>
     </main>
   );
-}
-
-function makeExampleThumb(kind) {
-  const variants = {
-    wolf:
-      '<rect width="320" height="240" fill="#0e1118"/><circle cx="240" cy="64" r="34" fill="#f472b6" opacity=".9"/><path d="M56 198L124 120L174 162L222 108L286 198Z" fill="#334155"/><path d="M116 178L148 98L194 126L186 194Z" fill="#67e8f9"/><path d="M120 166L148 120L168 136L182 182Z" fill="#facc15"/>',
-    sunset:
-      '<rect width="320" height="240" fill="#111217"/><circle cx="164" cy="102" r="56" fill="#fb923c"/><rect x="44" y="150" width="232" height="10" fill="#1f2937"/><rect x="86" y="144" width="120" height="42" rx="6" fill="#475569"/><circle cx="108" cy="190" r="10" fill="#0f172a"/><circle cx="188" cy="190" r="10" fill="#0f172a"/><path d="M56 146H270" stroke="#f59e0b" stroke-width="4" opacity=".7"/>',
-    dragon:
-      '<rect width="320" height="240" fill="#091225"/><circle cx="206" cy="84" r="34" fill="#60a5fa" opacity=".9"/><path d="M66 188C124 90 196 92 238 144C256 166 250 196 220 206C172 222 94 214 66 188Z" fill="#22d3ee"/><path d="M88 182C132 128 176 130 210 166" stroke="#0f172a" stroke-width="8" fill="none"/><path d="M166 120C178 86 206 70 224 62" stroke="#a78bfa" stroke-width="7" fill="none"/>',
-    koi:
-      '<rect width="320" height="240" fill="#0b1517"/><circle cx="160" cy="120" r="78" fill="#e2e8f0" opacity=".18"/><path d="M84 124C112 96 156 94 198 118C166 136 138 156 124 184C104 168 92 148 84 124Z" fill="#34d399"/><path d="M236 116C214 142 182 152 148 144C182 118 198 92 202 64C220 78 232 94 236 116Z" fill="#38bdf8"/><circle cx="170" cy="116" r="4" fill="#0f172a"/>',
-  };
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">${variants[kind] || variants.wolf}</svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { fabric } from "fabric";
+import { toEditorPlacement } from "../lib/mockupPlacement";
 
 export default function PlacementEditor({ design, value, onChange }) {
   const canvasRef = useRef(null);
@@ -52,14 +53,18 @@ export default function PlacementEditor({ design, value, onChange }) {
     fabric.Image.fromURL(
       design.preview,
       (img) => {
+        const editorPlacement = toEditorPlacement(value);
+        const targetWidth = editorPlacement.widthPx;
+        const widthRatio = targetWidth / Math.max(1, img.width || 1);
+
         img.set({
           data: { role: "design" },
-          left: 140,
-          top: 112 + (value?.y ?? 0),
+          left: editorPlacement.centerXPx,
+          top: editorPlacement.topPx,
           originX: "center",
-          originY: "center",
-          scaleX: 0.35 + (value?.scale ?? 20) / 100,
-          scaleY: 0.35 + (value?.scale ?? 20) / 100,
+          originY: "top",
+          scaleX: widthRatio,
+          scaleY: widthRatio,
           selectable: false,
         });
         canvas.add(img);
@@ -82,7 +87,7 @@ export default function PlacementEditor({ design, value, onChange }) {
           <input
             type="range"
             min={-20}
-            max={60}
+            max={70}
             value={value.scale}
             onChange={(event) => onChange({ ...value, scale: Number(event.target.value) })}
             className="mt-2 w-full"
@@ -95,8 +100,8 @@ export default function PlacementEditor({ design, value, onChange }) {
           </span>
           <input
             type="range"
-            min={-40}
-            max={60}
+            min={-55}
+            max={45}
             value={value.y}
             onChange={(event) => onChange({ ...value, y: Number(event.target.value) })}
             className="mt-2 w-full"
