@@ -1,4 +1,4 @@
-import { toPrintfulPosition } from "../lib/mockupPlacement";
+import { toPrintfulPosition } from "../lib/mockupPlacement.js";
 
 const PRINTFUL_BASE = "https://api.printful.com";
 
