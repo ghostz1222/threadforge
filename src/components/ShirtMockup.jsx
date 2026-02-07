@@ -1,112 +1,125 @@
-import { useId } from "react";
+import useTransparentDesign from "../hooks/useTransparentDesign";
 
+/**
+ * T-shirt mockup with client-side background removal.
+ * The design image has its dark background removed via canvas thresholding,
+ * then overlaid on a realistic SVG shirt with proper positioning.
+ */
 export default function ShirtMockup({ color, design, placement, muted = false }) {
-  const uid = useId().replace(/:/g, "");
-  const isLight = isLightColor(color);
-  const border = isLight ? "#D8D8D0" : "#2A313A";
-  const neckline = isLight ? "#E5E5DE" : "#12161B";
-  const stitch = isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.08)";
+  const processedDesign = useTransparentDesign(design?.preview);
 
   const scale = placement?.scale ?? 20;
   const y = placement?.y ?? 0;
-  const dw = 120 + scale * 1.2;
-  const dh = 130 + scale * 0.8;
-  const dx = 200 - dw / 2;
-  const dy = 160 + y * 0.8;
 
-  // Shirt body path — used for both rendering and clipping
-  const shirtBody =
-    "M120,80 L90,95 40,130 55,180 85,165 85,420 315,420 315,165 345,180 360,130 310,95 280,80 260,75Q230,65 200,62 170,65 140,75Z";
+  // Design positioning on the shirt (percentages of container)
+  const designWidthPct = 32 + scale * 0.45;
+  const designTopPct = 26 + y * 0.25;
 
   return (
-    <svg viewBox="0 0 400 480" className="mx-auto w-full max-w-[340px]">
-      <defs>
-        <filter id={`shadow-${uid}`} x="-30%" y="-30%" width="160%" height="180%">
-          <feDropShadow dx="0" dy="8" stdDeviation="14" floodOpacity="0.3" />
-        </filter>
-        <pattern id={`fabric-${uid}`} width="6" height="6" patternUnits="userSpaceOnUse">
-          <path d="M0 0 L6 6 M6 0 L0 6" stroke={isLight ? "#00000010" : "#FFFFFF10"} strokeWidth="0.5" />
-        </pattern>
-        {/* Clip design to the shirt body shape — no more rectangle */}
-        <clipPath id={`shirtClip-${uid}`}>
-          <path d={shirtBody} />
-        </clipPath>
-      </defs>
+    <div className="relative mx-auto w-full max-w-[340px]">
+      {/* Realistic SVG shirt */}
+      <ShirtSilhouette color={color} />
 
-      {/* Shirt body */}
-      <g filter={`url(#shadow-${uid})`}>
-        <path d={shirtBody} fill={color} stroke={border} strokeWidth="1" />
-        <path
-          d="M140,75Q170,90 200,93 230,90 260,75 245,70 230,68 215,82 200,84 185,82 170,68 155,70 140,75"
-          fill={neckline}
-          stroke={border}
-          strokeWidth="0.6"
+      {/* Design overlay — background already removed */}
+      {processedDesign ? (
+        <img
+          src={processedDesign}
+          alt="Your design"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: `${designWidthPct}%`,
+            top: `${designTopPct}%`,
+            opacity: muted ? 0.78 : 0.95,
+            filter: muted ? "saturate(0.85) brightness(0.95)" : "none",
+          }}
+          draggable={false}
         />
-        <path
-          d="M90,170 C170,210 230,210 310,170 L310,420 L90,420 Z"
-          fill={`url(#fabric-${uid})`}
-          opacity="0.35"
+      ) : design?.preview ? (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 animate-pulse rounded-lg bg-white/[0.06]"
+          style={{ width: `${designWidthPct}%`, top: `${designTopPct}%`, aspectRatio: "1" }}
         />
-      </g>
-
-      {/* Stitching lines */}
-      <line x1="85" y1="165" x2="120" y2="83" stroke={stitch} strokeWidth="1" strokeDasharray="4,3" />
-      <line x1="315" y1="165" x2="280" y2="83" stroke={stitch} strokeWidth="1" strokeDasharray="4,3" />
-
-      {/* Design overlay — blended onto the shirt using screen mode */}
-      {design?.preview ? (
-        <g clipPath={`url(#shirtClip-${uid})`}>
-          <image
-            href={design.preview}
-            x={dx}
-            y={dy}
-            width={dw}
-            height={dh}
-            preserveAspectRatio="xMidYMid meet"
-            style={{
-              mixBlendMode: "screen",
-              opacity: muted ? 0.82 : 0.95,
-            }}
-          />
-          {/* Subtle multiply layer for light shirts to add depth */}
-          {isLight && (
-            <image
-              href={design.preview}
-              x={dx}
-              y={dy}
-              width={dw}
-              height={dh}
-              preserveAspectRatio="xMidYMid meet"
-              style={{
-                mixBlendMode: "multiply",
-                opacity: 0.3,
-              }}
-            />
-          )}
-        </g>
       ) : (
-        <text x="200" y="250" textAnchor="middle" fill={isLight ? "#8d8d8d" : "#6b7280"} fontSize="12">
+        <div className="absolute left-1/2 top-[38%] -translate-x-1/2 text-center text-[11px] text-white/25">
           Your design appears here
-        </text>
+        </div>
       )}
+    </div>
+  );
+}
 
-      {/* Fabric texture overlay on top of design for realism */}
-      <g clipPath={`url(#shirtClip-${uid})`} style={{ mixBlendMode: "overlay", opacity: 0.08 }}>
-        <path
-          d="M90,170 C170,210 230,210 310,170 L310,420 L90,420 Z"
-          fill={`url(#fabric-${uid})`}
-        />
-      </g>
+/** Realistic SVG shirt with shading, seams, and fabric texture */
+function ShirtSilhouette({ color }) {
+  const isLight = isLightColor(color);
+  const shadow = isLight ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.4)";
+  const highlight = isLight ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)";
+  const fold = isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.03)";
+  const neckFill = isLight ? darken(color, 0.1) : lighten(color, 0.08);
+  const stitch = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)";
+
+  return (
+    <svg viewBox="0 0 400 500" className="w-full" style={{ filter: `drop-shadow(0 8px 24px ${shadow})` }}>
+      {/* Main body */}
+      <path
+        d="M115,78 L85,95 30,135 48,190 82,172 82,440 318,440 318,172 352,190 370,135 315,95 285,78 262,72 Q232,60 200,58 168,60 138,72 Z"
+        fill={color}
+      />
+      {/* Left shoulder highlight */}
+      <path d="M115,78 L85,95 30,135 48,190 82,172 82,130 Z" fill={highlight} opacity="0.25" />
+      {/* Right shoulder subtle highlight */}
+      <path d="M285,78 L315,95 370,135 352,190 318,172 318,130 Z" fill={highlight} opacity="0.15" />
+      {/* Lower body fold shadow */}
+      <path d="M82,260 Q140,270 200,265 260,270 318,260 L318,440 L82,440 Z" fill={fold} />
+      {/* Center fold crease */}
+      <line x1="200" y1="100" x2="200" y2="440" stroke={fold} strokeWidth="1.5" opacity="0.5" />
+      {/* Side seam shadows */}
+      <line x1="82" y1="172" x2="82" y2="440" stroke={shadow} strokeWidth="1.2" opacity="0.2" />
+      <line x1="318" y1="172" x2="318" y2="440" stroke={shadow} strokeWidth="1.2" opacity="0.12" />
+      {/* Neckline */}
+      <path
+        d="M138,72 Q168,92 200,95 232,92 262,72 248,67 234,65 218,82 200,85 182,82 166,65 152,67 138,72"
+        fill={neckFill}
+      />
+      <path d="M138,72 Q168,92 200,95 232,92 262,72" fill="none" stroke={stitch} strokeWidth="1" />
+      {/* Sleeve stitching */}
+      <line x1="82" y1="172" x2="115" y2="80" stroke={stitch} strokeWidth="0.7" strokeDasharray="3,4" />
+      <line x1="318" y1="172" x2="285" y2="80" stroke={stitch} strokeWidth="0.7" strokeDasharray="3,4" />
+      {/* Bottom hem */}
+      <line x1="82" y1="436" x2="318" y2="436" stroke={stitch} strokeWidth="0.7" strokeDasharray="3,4" />
+      {/* Subtle fabric crosshatch texture */}
+      <defs>
+        <pattern id="fabricTex" width="4" height="4" patternUnits="userSpaceOnUse">
+          <path d="M0 0L4 4M4 0L0 4" stroke={isLight ? "#00000006" : "#FFFFFF04"} strokeWidth="0.4" />
+        </pattern>
+      </defs>
+      <path
+        d="M82,172 L82,440 318,440 318,172 Q260,200 200,205 140,200 82,172Z"
+        fill="url(#fabricTex)"
+      />
     </svg>
   );
 }
 
 function isLightColor(hex) {
-  // Parse hex and check perceived brightness
   const c = hex.replace("#", "");
   const r = parseInt(c.substring(0, 2), 16);
   const g = parseInt(c.substring(2, 4), 16);
   const b = parseInt(c.substring(4, 6), 16);
-  // Perceived luminance formula
   return r * 0.299 + g * 0.587 + b * 0.114 > 140;
+}
+
+function darken(hex, amt) {
+  const c = hex.replace("#", "");
+  const r = Math.max(0, Math.round(parseInt(c.substring(0, 2), 16) * (1 - amt)));
+  const g = Math.max(0, Math.round(parseInt(c.substring(2, 4), 16) * (1 - amt)));
+  const b = Math.max(0, Math.round(parseInt(c.substring(4, 6), 16) * (1 - amt)));
+  return `rgb(${r},${g},${b})`;
+}
+
+function lighten(hex, amt) {
+  const c = hex.replace("#", "");
+  const r = Math.min(255, Math.round(parseInt(c.substring(0, 2), 16) * (1 + amt)));
+  const g = Math.min(255, Math.round(parseInt(c.substring(2, 4), 16) * (1 + amt)));
+  const b = Math.min(255, Math.round(parseInt(c.substring(4, 6), 16) * (1 + amt)));
+  return `rgb(${r},${g},${b})`;
 }
