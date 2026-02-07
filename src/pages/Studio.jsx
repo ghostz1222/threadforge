@@ -116,7 +116,7 @@ export default function Studio() {
 
   const handleUnlockWithEmail = () => {
     if (!unlockEmail.includes("@")) {
-      setError("Enter a valid email to unlock more generations.");
+      setError("Enter a valid email to unlock more designs.");
       return;
     }
     setGeneration((prev) => ({ ...prev, emailUnlocked: true }));

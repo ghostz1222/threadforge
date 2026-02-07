@@ -8,7 +8,7 @@ const EXAMPLES = [
 ];
 
 const STEPS = [
-  { idx: "01", title: "Describe", desc: "Tell us your idea in natural language. Our AI creates 4 unique variations in seconds." },
+  { idx: "01", title: "Describe", desc: "Tell us your idea in a few words. We'll create 4 unique design variations for you in seconds." },
   { idx: "02", title: "Customize", desc: "Pick your favorite, adjust scale and placement, choose shirt style and color." },
   { idx: "03", title: "Order", desc: "Secure checkout via Stripe. Printed and shipped to your door in 3-5 days." },
 ];
@@ -22,7 +22,7 @@ export default function Landing() {
         <div className="relative">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-medium tracking-wide text-white/60">AI-Powered Custom Apparel</span>
+            <span className="text-[11px] font-medium tracking-wide text-white/60">Custom Apparel, Made to Order</span>
           </div>
 
           <h1 className="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
@@ -94,7 +94,7 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="mt-16 text-center">
-        <p className="text-sm text-white/40">No account needed. 3 free generations to start.</p>
+        <p className="text-sm text-white/40">No account needed. 3 free designs to start.</p>
         <Link
           to="/studio"
           className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-8 py-3.5 text-sm font-semibold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
