@@ -6,6 +6,7 @@ import ShirtMockup from "../components/ShirtMockup";
 import ColorPicker from "../components/ColorPicker";
 import GenCounter from "../components/GenCounter";
 import { useThreadForge } from "../context/ThreadForgeContext";
+import { PRINTFUL_PRODUCTS } from "../data/printfulProducts";
 import { canGenerate } from "../lib/generationGate";
 import { checkPromptForBlockedTerms, scanOutputForPolicyViolations } from "../lib/moderation";
 import { generateExplorationDesigns, generateFinalDesign } from "../lib/generateDesign";
@@ -38,6 +39,7 @@ export default function Studio() {
   const [finalizing, setFinalizing] = useState(false);
   const [error, setError] = useState("");
   const [unlockEmail, setUnlockEmail] = useState("");
+  const selectedProduct = PRINTFUL_PRODUCTS.find((p) => p.id === product.printfulProduct) || PRINTFUL_PRODUCTS[0];
 
   const handleGenerate = async () => {
     const normalized = prompt.trim();
@@ -221,7 +223,12 @@ export default function Studio() {
           <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
             <div className="rounded-xl border border-white/[0.06] bg-coal-900/50 p-5">
               <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">Live mockup</p>
-              <ShirtMockup color={product.shirtColor} design={selectedDesign} placement={placement} />
+              <ShirtMockup
+                color={product.shirtColor}
+                design={selectedDesign}
+                placement={placement}
+                product={selectedProduct}
+              />
               <div className="mt-4 flex items-center justify-between gap-4">
                 <ColorPicker value={product.shirtColor} onChange={(shirtColor) => setProduct({ ...product, shirtColor })} />
                 <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[10px] font-medium text-white/30">Front only</span>

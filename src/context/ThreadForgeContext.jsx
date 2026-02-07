@@ -23,6 +23,24 @@ function persistState(state) {
   }
 }
 
+function normalizeProductState(product) {
+  const fallback = PRINTFUL_PRODUCTS[0];
+  const currentProduct = PRINTFUL_PRODUCTS.find((p) => p.id === product?.printfulProduct) || fallback;
+  const matchedColor =
+    currentProduct.colors.find((c) => c.hex === product?.shirtColor) ||
+    currentProduct.colors.find((c) => c.name === product?.shirtColorName) ||
+    currentProduct.colors[0];
+
+  return {
+    printfulProduct: currentProduct.id,
+    shirtType: product?.shirtType || currentProduct.name,
+    shirtColor: matchedColor.hex,
+    shirtColorName: matchedColor.name,
+    size: product?.size || "L",
+    variantId: product?.variantId || matchedColor.variantId,
+  };
+}
+
 export function ThreadForgeProvider({ children }) {
   const persisted = useMemo(() => loadPersistedState(), []);
 
@@ -36,13 +54,15 @@ export function ThreadForgeProvider({ children }) {
   );
 
   const [product, setProduct] = useState(
-    persisted?.product || {
-      printfulProduct: "bella-canvas-3001",
-      shirtType: "Bella+Canvas 3001",
-      shirtColor: "#0C0C0C",
-      shirtColorName: "Black",
-      size: "L",
-    }
+    normalizeProductState(
+      persisted?.product || {
+        printfulProduct: "bella-canvas-3001",
+        shirtType: "Bella+Canvas 3001",
+        shirtColor: "#0C0C0C",
+        shirtColorName: "Black",
+        size: "L",
+      },
+    ),
   );
 
   const [generation, setGeneration] = useState(

@@ -1,20 +1,20 @@
-// Designs are composited onto shirts using CSS mix-blend-mode: screen
-// In screen mode, pure black (#000000) becomes fully transparent
-// So all prompts MUST produce bright/colorful subjects on solid black backgrounds
 const STYLE_TEMPLATES = {
   minimal:
-    "minimalist t-shirt graphic, clean vector art, bold vivid colors, centered composition, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, professional screen print ready, high quality digital art",
+    "minimalist t-shirt graphic illustration, single clear subject, clean geometry, bold contrast, crisp edges, no surrounding scenery, print-focused composition",
   vintage:
-    "vintage retro t-shirt graphic, distressed worn texture, bright retro color palette, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, nostalgic illustration style, professional print ready, high quality",
+    "vintage t-shirt illustration, retro palette, distressed detail, balanced composition, clear silhouette, designed for garment print",
   streetwear:
-    "streetwear t-shirt graphic, bold thick outlines, vibrant neon colors, urban art style, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, clean vector edges, professional DTG print ready, high quality",
+    "streetwear t-shirt graphic, bold linework, high contrast, punchy color blocks, strong central composition, print-ready edge clarity",
   watercolor:
-    "watercolor art t-shirt graphic, soft blended painterly bright colors, visible brushstrokes, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, artistic splatter effects, professional print ready, high quality",
+    "watercolor t-shirt artwork, painterly color blending, soft texture with defined subject silhouette, clean subject isolation for print",
   illustrated:
-    "hand-drawn illustration t-shirt graphic, detailed line art with vivid color fill, crisp outlines, layered shading, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, professional print ready, high quality",
+    "detailed illustrated t-shirt art, hand-drawn line quality, layered shading, strong subject readability, clean print-ready edges",
   photographic:
-    "photorealistic t-shirt graphic, dramatic cinematic lighting, vivid saturated colors, strong subject focus, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, DTG optimized contrast, professional print ready, high quality",
+    "photographic-style t-shirt graphic, dramatic subject lighting, high subject separation, print-optimized contrast and readability",
 };
+
+const NEGATIVE_PROMPT =
+  "plain background, solid background, black background, white background, backdrop, frame, border, poster layout, mockup, t-shirt photo, watermark, logo, text block, UI elements";
 
 const BLOCKED_TERMS = [
   "nike", "adidas", "supreme", "gucci", "chanel", "louis vuitton", "prada",
@@ -39,7 +39,8 @@ function checkBlocklist(prompt) {
   if (hit) {
     return {
       allowed: false,
-      reason: "We can't create designs based on trademarked or copyrighted material. Try describing your own original idea!",
+      reason:
+        "We can't create designs based on trademarked or copyrighted material. Try describing your own original idea!",
     };
   }
   return { allowed: true };
@@ -71,154 +72,171 @@ async function rateLimitCheck(ip, redisUrl, redisToken) {
   }
 }
 
-async function generateWithFal(prompt, tier, count) {
-  const FAL_KEY = process.env.FAL_KEY;
-  if (!FAL_KEY) {
+function extractFalImageUrl(payload) {
+  return (
+    payload?.image?.url ||
+    payload?.image_url ||
+    payload?.images?.[0]?.url ||
+    payload?.result?.image?.url ||
+    payload?.result?.images?.[0]?.url ||
+    null
+  );
+}
+
+async function pollFalQueue(model, requestId, falKey) {
+  for (let i = 0; i < 70; i += 1) {
+    await new Promise((r) => setTimeout(r, 1800));
+
+    const statusRes = await fetch(`https://queue.fal.run/${model}/requests/${requestId}/status`, {
+      headers: { Authorization: `Key ${falKey}` },
+    });
+    const statusPayload = await statusRes.json().catch(() => ({}));
+
+    if (statusPayload.status === "COMPLETED") {
+      const resultRes = await fetch(`https://queue.fal.run/${model}/requests/${requestId}`, {
+        headers: { Authorization: `Key ${falKey}` },
+      });
+      const resultPayload = await resultRes.json().catch(() => ({}));
+      return extractFalImageUrl(resultPayload);
+    }
+
+    if (statusPayload.status === "FAILED") {
+      throw new Error(`Fal queue job failed for model: ${model}`);
+    }
+  }
+
+  throw new Error(`Fal queue timeout for model: ${model}`);
+}
+
+async function callFalModel(model, input, falKey) {
+  const syncRes = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Key ${falKey}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (syncRes.ok) {
+    const syncPayload = await syncRes.json().catch(() => ({}));
+    const directUrl = extractFalImageUrl(syncPayload);
+    if (directUrl) return directUrl;
+    if (syncPayload.request_id) {
+      return pollFalQueue(model, syncPayload.request_id, falKey);
+    }
+  }
+
+  const queueRes = await fetch(`https://queue.fal.run/${model}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Key ${falKey}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!queueRes.ok) {
+    const errText = await queueRes.text();
+    throw new Error(`Fal request failed: ${errText}`);
+  }
+
+  const queuePayload = await queueRes.json().catch(() => ({}));
+  if (!queuePayload.request_id) {
+    const directUrl = extractFalImageUrl(queuePayload);
+    if (directUrl) return directUrl;
+    throw new Error("Fal response missing request_id and image URL");
+  }
+
+  return pollFalQueue(model, queuePayload.request_id, falKey);
+}
+
+async function removeBackgroundWithFal(imageUrl, falKey) {
+  const bgRemovalModel = process.env.FAL_BG_REMOVAL_MODEL || "fal-ai/bria/background/remove";
+
+  try {
+    const cutoutUrl = await callFalModel(
+      bgRemovalModel,
+      {
+        image_url: imageUrl,
+        output_format: "png",
+      },
+      falKey,
+    );
+
+    return cutoutUrl || imageUrl;
+  } catch {
+    return imageUrl;
+  }
+}
+
+function sanitizePrompt(prompt) {
+  return prompt.replace(/[\n\r\t]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+async function generateWithFal(prompt, style, tier, count) {
+  const falKey = process.env.FAL_KEY;
+  if (!falKey) {
     throw new Error("FAL_KEY not configured");
   }
 
-  const model = tier === "pro"
-    ? "fal-ai/flux-pro/v1.1"
-    : "fal-ai/flux/schnell";
+  const model = tier === "pro" ? "fal-ai/flux-pro/v1.1" : "fal-ai/flux/schnell";
+  const styleTemplate = STYLE_TEMPLATES[style] || STYLE_TEMPLATES.streetwear;
+  const fullPrompt = `${prompt}, ${styleTemplate}, isolated subject, transparent background aesthetic, no surrounding backdrop, avoid: ${NEGATIVE_PROMPT}`;
 
-  const images = [];
+  const imageCount = tier === "pro" ? 1 : Math.min(Math.max(count, 1), 4);
+  const applyCutout = process.env.FAL_BG_REMOVAL !== "false";
 
-  for (let i = 0; i < count; i++) {
-    // Use synchronous endpoint first (simpler, works for schnell)
-    const response = await fetch(`https://fal.run/${model}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Key ${FAL_KEY}`,
-      },
-      body: JSON.stringify({
-        prompt,
+  const urls = [];
+  for (let i = 0; i < imageCount; i += 1) {
+    const generatedUrl = await callFalModel(
+      model,
+      {
+        prompt: fullPrompt,
         image_size: "square_hd",
-        num_inference_steps: tier === "pro" ? 28 : 4,
+        num_inference_steps: tier === "pro" ? 28 : 6,
         num_images: 1,
         enable_safety_checker: true,
-      }),
-    });
+      },
+      falKey,
+    );
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`Fal.ai sync error (${response.status}):`, errText);
-
-      // If sync fails, try queue-based approach
-      const queueResponse = await fetch(`https://queue.fal.run/${model}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Key ${FAL_KEY}`,
-        },
-        body: JSON.stringify({
-          prompt,
-          image_size: "square_hd",
-          num_inference_steps: tier === "pro" ? 28 : 4,
-          num_images: 1,
-          enable_safety_checker: true,
-        }),
-      });
-
-      if (!queueResponse.ok) {
-        const queueErr = await queueResponse.text();
-        throw new Error(`Fal.ai queue error: ${queueErr}`);
-      }
-
-      const queueResult = await queueResponse.json();
-
-      if (queueResult.request_id) {
-        let attempts = 0;
-        while (attempts < 60) {
-          await new Promise((r) => setTimeout(r, 2000));
-          const statusRes = await fetch(
-            `https://queue.fal.run/${model}/requests/${queueResult.request_id}/status`,
-            { headers: { Authorization: `Key ${FAL_KEY}` } }
-          );
-          const status = await statusRes.json();
-
-          if (status.status === "COMPLETED") {
-            const resultRes = await fetch(
-              `https://queue.fal.run/${model}/requests/${queueResult.request_id}`,
-              { headers: { Authorization: `Key ${FAL_KEY}` } }
-            );
-            const finalResult = await resultRes.json();
-            if (finalResult.images?.[0]?.url) {
-              images.push(finalResult.images[0].url);
-            }
-            break;
-          }
-          if (status.status === "FAILED") {
-            throw new Error("Image generation failed in queue");
-          }
-          attempts++;
-        }
-      }
-      continue;
-    }
-
-    const result = await response.json();
-
-    if (result.images?.[0]?.url) {
-      images.push(result.images[0].url);
-    } else if (result.request_id) {
-      // Handle async response from sync endpoint
-      let attempts = 0;
-      while (attempts < 60) {
-        await new Promise((r) => setTimeout(r, 2000));
-        const statusRes = await fetch(
-          `https://queue.fal.run/${model}/requests/${result.request_id}/status`,
-          { headers: { Authorization: `Key ${FAL_KEY}` } }
-        );
-        const status = await statusRes.json();
-
-        if (status.status === "COMPLETED") {
-          const resultRes = await fetch(
-            `https://queue.fal.run/${model}/requests/${result.request_id}`,
-            { headers: { Authorization: `Key ${FAL_KEY}` } }
-          );
-          const finalResult = await resultRes.json();
-          if (finalResult.images?.[0]?.url) {
-            images.push(finalResult.images[0].url);
-          }
-          break;
-        }
-        if (status.status === "FAILED") {
-          throw new Error("Image generation failed");
-        }
-        attempts++;
-      }
-    }
+    const finalUrl = applyCutout ? await removeBackgroundWithFal(generatedUrl, falKey) : generatedUrl;
+    urls.push(finalUrl);
   }
 
-  return images;
+  return {
+    fullPrompt,
+    urls,
+  };
 }
 
 async function moderateWithOpenAI(prompt) {
-  const OPENAI_KEY = process.env.OPENAI_API_KEY;
-  if (!OPENAI_KEY) return { flagged: false };
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (!openaiKey) return { flagged: false };
 
   try {
     const response = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_KEY}`,
+        Authorization: `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({ input: prompt }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     const result = data.results?.[0];
 
     if (result?.flagged) {
       return {
         flagged: true,
-        categories: Object.entries(result.categories)
-          .filter(([, v]) => v)
-          .map(([k]) => k),
+        categories: Object.entries(result.categories || {})
+          .filter(([, value]) => value)
+          .map(([key]) => key),
       };
     }
+
     return { flagged: false };
   } catch {
     return { flagged: false };
@@ -231,56 +249,51 @@ export default async function handler(req, res) {
   }
 
   const { prompt, style = "streetwear", tier = "schnell", count = 4 } = req.body || {};
+  const cleanedPrompt = sanitizePrompt(String(prompt || ""));
 
-  if (!prompt || typeof prompt !== "string" || prompt.trim().length < 3) {
+  if (!cleanedPrompt || cleanedPrompt.length < 3) {
     return res.status(400).json({ error: "Prompt is required (minimum 3 characters)" });
   }
 
-  // Rate limiting
   const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
   const rateCheck = await rateLimitCheck(
     ip,
     process.env.UPSTASH_REDIS_REST_URL,
-    process.env.UPSTASH_REDIS_REST_TOKEN
+    process.env.UPSTASH_REDIS_REST_TOKEN,
   );
+
   if (!rateCheck.allowed) {
     return res.status(429).json({ error: rateCheck.reason });
   }
 
-  // Blocklist moderation
-  const blockCheck = checkBlocklist(prompt);
+  const blockCheck = checkBlocklist(cleanedPrompt);
   if (!blockCheck.allowed) {
     return res.status(422).json({ error: blockCheck.reason });
   }
 
-  // OpenAI moderation
-  const openaiCheck = await moderateWithOpenAI(prompt);
-  if (openaiCheck.flagged) {
+  const moderationCheck = await moderateWithOpenAI(cleanedPrompt);
+  if (moderationCheck.flagged) {
     return res.status(422).json({
       error: "This prompt contains content that doesn't meet our guidelines. Try a different description.",
-      categories: openaiCheck.categories,
+      categories: moderationCheck.categories,
     });
   }
 
-  // Compose full prompt with style template
-  const template = STYLE_TEMPLATES[style] || STYLE_TEMPLATES.streetwear;
-  const fullPrompt = `${prompt.trim()}, ${template}`;
-
   try {
-    const imageCount = tier === "pro" ? 1 : Math.min(count, 4);
-    const images = await generateWithFal(fullPrompt, tier, imageCount);
+    const { fullPrompt, urls } = await generateWithFal(cleanedPrompt, style, tier, count);
 
     return res.status(200).json({
       tier,
-      images,
-      designs: images.map((url, i) => ({
+      images: urls,
+      designs: urls.map((url, i) => ({
         id: `${tier}-${Date.now()}-${i}`,
         preview: url,
         prompt: fullPrompt,
       })),
     });
   } catch (err) {
-    console.error("Generation error:", err.message);
-    return res.status(500).json({ error: `Image generation failed: ${err.message}` });
+    return res.status(500).json({
+      error: `Image generation failed: ${err.message || "Unknown error"}`,
+    });
   }
 }

@@ -40,3 +40,5 @@ npm run dev
 ## Notes
 - By default, the app runs with mock integrations so the full user flow is testable without external keys.
 - Enable live provider routes by copying `.env.example` to `.env` and turning the `VITE_USE_SERVER_*` flags on.
+- Real product previews use `/api/mockup-preview` (Printful mockup task API). If `PRINTFUL_API_KEY` is missing, the UI falls back to composited product-photo previews.
+- Placeholder local design generation is disabled by default. Set `VITE_ALLOW_PLACEHOLDER_GEN=true` only if you explicitly want SVG dummy outputs for offline UI testing.

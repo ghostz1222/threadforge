@@ -61,7 +61,11 @@ export async function generateExplorationDesigns({ prompt, style, count = 4, ses
     });
 
     if (response.ok) {
-      return response.json();
+      const payload = await response.json();
+      if (Array.isArray(payload.designs) && payload.designs.length > 0 && payload.designs.every((d) => d.preview)) {
+        return payload;
+      }
+      throw new Error("Generation service returned invalid image payload");
     }
 
     const err = await response.json().catch(() => ({}));
@@ -69,6 +73,9 @@ export async function generateExplorationDesigns({ prompt, style, count = 4, ses
     // If it's a moderation/rate limit error, throw it (don't fall through)
     if (response.status === 422 || response.status === 429 || response.status === 400) {
       throw new Error(err.error || "Generation blocked");
+    }
+    if (response.status >= 500 && err.error) {
+      throw new Error(err.error);
     }
   } catch (fetchErr) {
     // If the error was from moderation/rate-limit, re-throw
@@ -78,7 +85,11 @@ export async function generateExplorationDesigns({ prompt, style, count = 4, ses
     // Otherwise fall through to client-side placeholder generation
   }
 
-  // Fallback: client-side placeholder generation (dev mode / no API keys)
+  // Optional fallback: client-side placeholder generation (explicitly opt-in only)
+  if (import.meta.env.VITE_ALLOW_PLACEHOLDER_GEN !== "true") {
+    throw new Error("Image generation service unavailable. Check API configuration.");
+  }
+
   const fullPrompt = composeGenerationPrompt(prompt, style);
   await new Promise((resolve) => setTimeout(resolve, 900));
 
@@ -109,16 +120,31 @@ export async function generateFinalDesign({ prompt, style, selectedId }) {
 
     if (response.ok) {
       const data = await response.json();
+      const design = data.designs?.[0] || data.design;
+      if (!design?.preview) {
+        throw new Error("Final render payload missing image URL");
+      }
       return {
         tier: "pro",
-        design: data.designs?.[0] || data.design,
+        design,
       };
     }
-  } catch {
+    const err = await response.json().catch(() => ({}));
+    if (err.error) {
+      throw new Error(err.error);
+    }
+  } catch (fetchErr) {
+    if (fetchErr?.message && fetchErr.message !== "Failed to fetch") {
+      throw fetchErr;
+    }
     // Fall through to client-side placeholder
   }
 
-  // Fallback: client-side placeholder generation
+  if (import.meta.env.VITE_ALLOW_PLACEHOLDER_GEN !== "true") {
+    throw new Error("Final render service unavailable. Check API configuration.");
+  }
+
+  // Optional fallback: client-side placeholder generation
   const fullPrompt = composeGenerationPrompt(prompt, style);
   await new Promise((resolve) => setTimeout(resolve, 700));
   const seed = hash(`${fullPrompt}-${selectedId}-final`);

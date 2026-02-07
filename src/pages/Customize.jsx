@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ShirtMockup from "../components/ShirtMockup";
 import { useThreadForge } from "../context/ThreadForgeContext";
-import { PRINTFUL_PRODUCTS, SHIPPING_RATES } from "../data/printfulProducts";
+import usePrintfulMockup from "../hooks/usePrintfulMockup";
+import {
+  PRINTFUL_PRODUCTS,
+  SHIPPING_RATES,
+  getVariantForColor,
+} from "../data/printfulProducts";
 
 export default function Customize() {
   const { selectedDesign, product, setProduct, placement } = useThreadForge();
@@ -16,6 +21,14 @@ export default function Customize() {
   if (!selectedDesign) return null;
 
   const selectedProduct = PRINTFUL_PRODUCTS.find((p) => p.id === product.printfulProduct) || PRINTFUL_PRODUCTS[0];
+  const selectedVariant = getVariantForColor(selectedProduct, product.shirtColor);
+  const { mockupUrl, loading: loadingMockup, error: mockupError } = usePrintfulMockup({
+    enabled: Boolean(selectedDesign?.preview && selectedVariant?.variantId),
+    designUrl: selectedDesign?.preview,
+    printfulProductId: selectedProduct.printfulProductId,
+    variantId: selectedVariant?.variantId,
+    placement,
+  });
   const total = selectedProduct.basePrice + SHIPPING_RATES.standard.price;
 
   const handleSelectProduct = (prod) => {
@@ -27,11 +40,17 @@ export default function Customize() {
       shirtColorName: firstColor.name,
       shirtType: prod.name,
       size: prod.sizes.includes(product.size) ? product.size : "M",
+      variantId: firstColor.variantId,
     });
   };
 
   const handleSelectColor = (color) => {
-    setProduct({ ...product, shirtColor: color.hex, shirtColorName: color.name });
+    setProduct({
+      ...product,
+      shirtColor: color.hex,
+      shirtColorName: color.name,
+      variantId: color.variantId,
+    });
   };
 
   const handleSelectSize = (size) => {
@@ -134,11 +153,19 @@ export default function Customize() {
               color={product.shirtColor}
               design={selectedDesign}
               placement={placement}
+              product={selectedProduct}
               muted={printPreview}
+              realMockupUrl={mockupUrl}
+              loadingRealMockup={loadingMockup}
             />
             {printPreview && (
               <p className="mt-3 text-center text-[11px] text-white/35">
                 Simulating on-fabric muting &mdash; actual print will closely match.
+              </p>
+            )}
+            {!mockupUrl && mockupError && (
+              <p className="mt-2 text-center text-[11px] text-amber-300/80">
+                Live Printful mockup unavailable: using composited preview.
               </p>
             )}
           </div>
@@ -223,7 +250,14 @@ export default function Customize() {
 
           {/* Design preview */}
           <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.06] bg-coal-900/50">
-            <img src={selectedDesign.preview} alt="Your design" className="aspect-square w-full object-cover" />
+            <ShirtMockup
+              color={product.shirtColor}
+              design={selectedDesign}
+              placement={placement}
+              product={selectedProduct}
+              realMockupUrl={mockupUrl}
+              loadingRealMockup={loadingMockup}
+            />
           </div>
 
           <h2 className="mt-4 text-lg font-bold">{selectedProduct.name}</h2>

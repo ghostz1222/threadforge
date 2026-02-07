@@ -14,6 +14,8 @@ export const PRINTFUL_PRODUCTS = [
     badge: "Best Seller",
     basePrice: 24.50,
     image: "https://files.cdn.printful.com/products/71/product_image/bella-canvas-3001-unisex-jersey-tee.jpg",
+    imageColorName: "Black",
+    mockupPlacement: { x: 50, y: 48, width: 32, maxWidth: 46 },
     colors: [
       { name: "Black", hex: "#0C0C0C", variantId: 4011 },
       { name: "White", hex: "#FAFAFA", variantId: 4012 },
@@ -40,6 +42,8 @@ export const PRINTFUL_PRODUCTS = [
     badge: "Premium",
     basePrice: 26.00,
     image: "https://files.cdn.printful.com/products/380/product_image/bella-canvas-3001cvc.jpg",
+    imageColorName: "Heather Black",
+    mockupPlacement: { x: 50, y: 48, width: 32, maxWidth: 46 },
     colors: [
       { name: "Heather Black", hex: "#1C1C1C", variantId: 9867 },
       { name: "Heather Navy", hex: "#2D3A4E", variantId: 9872 },
@@ -62,6 +66,8 @@ export const PRINTFUL_PRODUCTS = [
     badge: "Trending",
     basePrice: 28.00,
     image: "https://files.cdn.printful.com/products/554/product_image/comfort-colors-1717.jpg",
+    imageColorName: "Black",
+    mockupPlacement: { x: 50, y: 47, width: 31, maxWidth: 44 },
     colors: [
       { name: "Black", hex: "#111111", variantId: 14581 },
       { name: "Ivory", hex: "#F0EDE3", variantId: 14574 },
@@ -86,6 +92,8 @@ export const PRINTFUL_PRODUCTS = [
     badge: "Value",
     basePrice: 18.50,
     image: "https://files.cdn.printful.com/products/5/product_image/gildan-5000.jpg",
+    imageColorName: "Black",
+    mockupPlacement: { x: 50, y: 47, width: 31, maxWidth: 44 },
     colors: [
       { name: "Black", hex: "#0E0E0E", variantId: 1 },
       { name: "White", hex: "#FEFEFE", variantId: 2 },
@@ -109,4 +117,11 @@ export function getProductById(id) {
 
 export function getDefaultProduct() {
   return PRINTFUL_PRODUCTS[0]; // Bella+Canvas 3001
+}
+
+export function getVariantForColor(product, shirtColor) {
+  if (!product?.colors?.length) return null;
+  const normalized = (shirtColor || "").toLowerCase();
+  const byHex = product.colors.find((c) => c.hex.toLowerCase() === normalized);
+  return byHex || product.colors[0];
 }
