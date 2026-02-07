@@ -41,6 +41,12 @@ function extractMockupUrl(payload) {
   return payload.result.mockup_url || null;
 }
 
+function variantIdFromNode(node) {
+  const raw = node?.id ?? node?.variant_id ?? node?.catalog_variant_id ?? node?.sync_variant_id;
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : null;
+}
+
 async function printfulRequest(path, options = {}) {
   const apiKey = process.env.PRINTFUL_API_KEY;
   if (!apiKey) {
@@ -75,6 +81,29 @@ async function printfulRequest(path, options = {}) {
   return payload;
 }
 
+async function resolveVariantId(printfulProductId, requestedVariantId) {
+  const requested = Number(requestedVariantId);
+  const safeRequested = Number.isFinite(requested) ? requested : null;
+
+  try {
+    const payload = await printfulRequest(`/products/${printfulProductId}`);
+    const variants = payload?.result?.variants || [];
+    const variantIds = variants.map(variantIdFromNode).filter((id) => Number.isFinite(id));
+
+    if (variantIds.length === 0) {
+      return safeRequested;
+    }
+
+    if (safeRequested && variantIds.includes(safeRequested)) {
+      return safeRequested;
+    }
+
+    return variantIds[0];
+  } catch {
+    return safeRequested;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -92,11 +121,15 @@ export default async function handler(req, res) {
 
   try {
     const position = placementToPrintfilePosition(placement);
+    const resolvedVariantId = await resolveVariantId(printfulProductId, variantId);
+    if (!resolvedVariantId) {
+      return res.status(422).json({ error: "No valid variant ID available for this product" });
+    }
 
     const taskResponse = await printfulRequest(`/mockup-generator/create-task/${printfulProductId}`, {
       method: "POST",
       body: JSON.stringify({
-        variant_ids: [Number(variantId)],
+        variant_ids: [resolvedVariantId],
         format: "jpg",
         files: [
           {
@@ -134,7 +167,7 @@ export default async function handler(req, res) {
       return res.status(504).json({ error: "Mockup generation timed out", taskKey });
     }
 
-    return res.status(200).json({ mockupUrl, taskKey });
+    return res.status(200).json({ mockupUrl, taskKey, variantId: resolvedVariantId });
   } catch (err) {
     const statusCode = err.statusCode || 500;
     return res.status(statusCode).json({
