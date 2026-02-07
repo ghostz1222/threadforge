@@ -1,16 +1,19 @@
+// Designs are composited onto shirts using CSS mix-blend-mode: screen
+// In screen mode, pure black (#000000) becomes fully transparent
+// So all prompts MUST produce bright/colorful subjects on solid black backgrounds
 const STYLE_TEMPLATES = {
   minimal:
-    "minimalist t-shirt design, clean vector art, bold contrast, centered composition, isolated subject on pure black background #000000, no border, no frame, crisp edges, professional screen print ready, high quality digital art",
+    "minimalist t-shirt graphic, clean vector art, bold vivid colors, centered composition, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, professional screen print ready, high quality digital art",
   vintage:
-    "vintage retro t-shirt design, distressed worn texture, muted retro color palette, isolated subject on pure black background #000000, no border, no frame, nostalgic illustration style, professional print ready, high quality",
+    "vintage retro t-shirt graphic, distressed worn texture, bright retro color palette, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, nostalgic illustration style, professional print ready, high quality",
   streetwear:
-    "streetwear t-shirt graphic design, bold thick outlines, vibrant colors, urban art style, isolated subject on pure black background #000000, no border, no frame, clean vector edges, professional DTG print ready, high quality",
+    "streetwear t-shirt graphic, bold thick outlines, vibrant neon colors, urban art style, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, clean vector edges, professional DTG print ready, high quality",
   watercolor:
-    "watercolor art style t-shirt design, soft blended painterly colors, visible brushstrokes, isolated subject on pure black background #000000, no border, no frame, artistic splatter effects, professional print ready, high quality",
+    "watercolor art t-shirt graphic, soft blended painterly bright colors, visible brushstrokes, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, artistic splatter effects, professional print ready, high quality",
   illustrated:
-    "hand-drawn illustration style t-shirt design, detailed line art with color fill, crisp outlines, layered shading, isolated subject on pure black background #000000, no border, no frame, professional print ready, high quality",
+    "hand-drawn illustration t-shirt graphic, detailed line art with vivid color fill, crisp outlines, layered shading, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, professional print ready, high quality",
   photographic:
-    "photorealistic t-shirt design, dramatic cinematic lighting, vivid colors, strong subject focus, isolated on pure black background #000000, no border, no frame, DTG optimized contrast, professional print ready, high quality",
+    "photorealistic t-shirt graphic, dramatic cinematic lighting, vivid saturated colors, strong subject focus, single isolated subject floating on solid black background, absolutely no border no frame no ground no shadow, the entire background must be pure solid black #000000, DTG optimized contrast, professional print ready, high quality",
 };
 
 const BLOCKED_TERMS = [
